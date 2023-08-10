@@ -1,5 +1,11 @@
 package APIs
 
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+)
+
 // AlphaVantage API https://www.alphavantage.co/documentation/
 
 ///////////////////////
@@ -287,6 +293,34 @@ type CommodityPrices struct { // rename
 type CommodityPrice struct { // rename
 	Date  string  `json:"date"`
 	Value float64 `json:"value,string"`
+}
+
+// make CommodityPrice an Unmarshaler
+func (c *CommodityPrice) UnmarshalJSON(data []byte) error {
+	var aux struct {
+		Date  string `json:"date"`
+		Value string `json:"value"`
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	// If "value" is null or an empty string, ignore the struct
+	if aux.Value == "null" || aux.Value == "" || aux.Value == "." {
+		return nil
+	}
+
+	c.Date = aux.Date
+	fmt.Println(aux)
+	value, err := strconv.ParseFloat(aux.Value, 64)
+	fmt.Println(value)
+
+	if err != nil {
+		return err
+	}
+	c.Value = value
+
+	return nil
 }
 
 /////////
