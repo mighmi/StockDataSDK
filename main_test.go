@@ -16,6 +16,7 @@ func TestGetTickerFromUser(t *testing.T) {
 		{"ewz", "EWZ"},
 		{"GOOG", "GOOG"},
 		{"bDorY", "BDORY"},
+		{"brent", "BRENT"},
 	}
 
 	for _, tc := range testCases {

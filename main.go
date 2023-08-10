@@ -46,6 +46,7 @@ func GetTickerFromUser() string {
 	words := []string{"OVERVIEW", "NONFARMPAYROLL", "NONFARM", "PAYROLL", "EMPLOYMENT", "TGLAT", "GAINERS", "LOSERS", "TOPGAINERSLOSERS",
 		"OVERVIEW", "RETAIL", "INFLATION", "CPI", "FEDFUNDSRATE", "FUNDS", "EFFECTIVEFEDERALFUNDSRATE", "EFFR",
 		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT", "RETAILSALES",
+		"BOND", "YIELD", "TREASURY", "TREASURY_YIELD",
 	}
 	for _, word := range words {
 		if strings.Contains(userInput, word) {
@@ -264,7 +265,28 @@ func QueryBuilder(ticker string) (url string) {
 
 		// treasury yield - in percent, monthly or daily?
 		//          // maturities: 3month, 2year, 5year, 7year, 10year
-		// TREASURY_YIELD &interval=daily &maturity 3month, 2year,5,year,7year, 10 year, 30year
+		// TREASURY_YIELD  &maturity 3month, 2year,5,year,7year, 10 year, 30year
+	case "BOND", "YIELD", "TREASURY", "TREASURY_YIELD":
+		// assuming they type e.g. "bond 3"
+		maturity := strings.Fields(ticker)[1]
+		switch maturity {
+		case "3", "3m", "3month":
+			maturity = "3month"
+		case "2", "2y", "2yr", "2year":
+			maturity = "2year"
+		case "5", "5y", "5yr", "5year":
+			maturity = "5year"
+		case "7", "7y", "7yr", "7year":
+			maturity = "7year"
+		case "10", "10y", "10yr", "10year":
+			maturity = "10year"
+		case "30", "30y", "30yr", "30year":
+			maturity = "30year"
+		}
+
+		url = baseUrl + "TREASURY_YIELD" + "&interval=daily" + "&maturity=" + maturity
+		structType = "APIs.CommodityPrices"
+		return
 
 	// time series intraday   	 ?interval=1min  extended true/false?
 	// e.g. month=2009-01, since 2000-01
@@ -280,7 +302,7 @@ func QueryBuilder(ticker string) (url string) {
 		if date.Before(refDate) {
 			fmt.Println("Error: Date is before 2000-01")
 		}
-
+		// strongly expect this to fail, it doesn't add the month...
 		url = baseUrl + "TIME_SERIES_INTRADAY" + "&symbol" + ticker + "&outputsize=full"
 		structType = "APIs.IntradayOHLCVs"
 		return
