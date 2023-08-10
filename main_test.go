@@ -17,6 +17,8 @@ func TestGetTickerFromUser(t *testing.T) {
 		{"GOOG", "GOOG"},
 		{"bDorY", "BDORY"},
 		{"brent", "BRENT"},
+		{"5 bond", "BOND 5"},
+		{"5 yield", "YIELD 5"},
 	}
 
 	for _, tc := range testCases {
@@ -36,9 +38,12 @@ func TestGetTickerFromUser(t *testing.T) {
 
 // TestGetData, mok a server?
 
-func TestWriteToFile(t *testing.T) {
+// need to add more test cases... bonds etc. use curl and then the actual program output?
+// determine whatoutput you actually want first (e.g. without marshaling?)
+func TestWriteToFileAndQueryBuilder(t *testing.T) {
 	testCases := []struct {
 		input    string
+		ticker   string // WriteToFile requires a structTyle, which is determined in QueryBuilder
 		expected string
 	}{
 		{
@@ -67,6 +72,7 @@ func TestWriteToFile(t *testing.T) {
 					}
 				}
 			}`,
+			ticker:   "EWZ",
 			expected: `{"2023-08-03":{"1. open":"32.8","2. high":"33.03","3. low":"32.27","4. close":"32.29","5. volume":"27908785"},"2023-08-04":{"1. open":"32.53","2. high":"32.855","3. low":"32.0425","4. close":"32.06","5. volume":"30396398"}}`,
 		},
 	}
@@ -75,6 +81,8 @@ func TestWriteToFile(t *testing.T) {
 		t.Run("Test case", func(t *testing.T) {
 			// Convert the JSON string to an io.Reader
 			reader := strings.NewReader(tc.input)
+
+			_ = QueryBuilder(tc.ticker) // returns unneeded url
 
 			// Call the WriteToFile function with the formatted JSON data
 			// Delete test file after

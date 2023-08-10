@@ -455,7 +455,7 @@ func main() {
 
 	fmt.Println(resp.Body)
 	finalData := ReformatJson(resp.Body)
-	fmt.Println(finalData)
+	fmt.Println(finalData) // for dev purposes, remove when everything works
 	WriteToFile(ticker, finalData)
 
 }
