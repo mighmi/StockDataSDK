@@ -84,11 +84,29 @@ func GetTickerFromUser() string {
 
 //	}
 
-// lazy
+// lazy implementation from godotenv to reduce dependencies
 func buildBaseURL() string {
-	data, err := os.ReadFile(".env")
+	f, err := (os.Open(".env"))
 	check(err)
-	apiKey := string(data)
+	defer f.Close()
+
+	var envMap map[string]string
+	err = json.NewDecoder(f).Decode(&envMap)
+	check(err)
+
+	currentEnv := map[string]bool{}
+	rawEnv := os.Environ()
+	for _, rawEnvLine := range rawEnv {
+		key := strings.Split(rawEnvLine, "=")[0]
+		currentEnv[key] = true
+	}
+	for key, value := range envMap {
+		if !currentEnv[key] {
+			_ = os.Setenv(key, value)
+		}
+	}
+
+	apiKey := os.Getenv("APIKEY")
 	// apiKey, ok := os.LookupEnv("APIKEY")
 	// if !ok {
 	// 	log.Fatalf("Add API Key to .env")
