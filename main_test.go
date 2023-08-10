@@ -75,6 +75,16 @@ func TestWriteToFileAndQueryBuilder(t *testing.T) {
 			ticker:   "EWZ",
 			expected: `{"2023-08-03":{"1. open":"32.8","2. high":"33.03","3. low":"32.27","4. close":"32.29","5. volume":"27908785"},"2023-08-04":{"1. open":"32.53","2. high":"32.855","3. low":"32.0425","4. close":"32.06","5. volume":"30396398"}}`,
 		},
+		{
+			input:    ``,
+			ticker:   "",
+			expected: `{"name":"10-Year Treasury Constant Maturity Rate","interval":"daily","unit":"percent","data":[{"date":"2023-08-08","value":"4.02"},{"date":"2023-08-07","value":"4.09"},{"date":"2023-08-04","value":"4.05"},{"date":"2023-08-03","value":"4.2"},{"date":"2023-08-02","value":"4.08"},{"date":"2023-08-01","value":"4.05"},{"date":"2023-07-31","value":"3.97"},{"date":"2023-07-28","value":"3.96"},{"date":"1962-01-05","value":"4.02"},{"date":"1962-01-04","value":"3.99"},{"date":"1962-01-03","value":"4.03"},{"date":"1962-01-02","value":"4.06"}`,
+		},
+		{
+			input:    ``,
+			ticker:   "",
+			expected: ``,
+		},
 	}
 
 	for _, tc := range testCases {

@@ -263,11 +263,9 @@ func QueryBuilder(ticker string) (url string) {
 		structType = "APIs.CommodityPrices"
 		return
 
-		// treasury yield - in percent, monthly or daily?
-		//          // maturities: 3month, 2year, 5year, 7year, 10year
 		// TREASURY_YIELD  &maturity 3month, 2year,5,year,7year, 10 year, 30year
 	case "BOND", "YIELD", "TREASURY", "TREASURY_YIELD":
-		// assuming they type e.g. "bond 3"
+		// second field is maturity
 		maturity := strings.Fields(ticker)[1]
 		switch maturity {
 		case "3", "3m", "3month":
@@ -370,7 +368,7 @@ func ReformatJson(resp io.Reader) string {
 		var seriesDataMap APIs.CommodityPrices
 		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap)
+		output, err := json.Marshal(seriesDataMap.Data)
 		check(err)
 		return string(output)
 
@@ -451,11 +449,11 @@ func main() {
 	resp, err := http.Get(url) // later become new func?
 	check(err)
 	defer resp.Body.Close()
-	fmt.Println(url)
-
-	fmt.Println(resp.Body)
+	//	fmt.Println(resp.Body)
 	finalData := ReformatJson(resp.Body)
-	fmt.Println(finalData) // for dev purposes, remove when everything works
+	//	fmt.Println(finalData) // for dev purposes, remove when everything works
 	WriteToFile(ticker, finalData)
+
+	fmt.Println(url)
 
 }
