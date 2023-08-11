@@ -45,7 +45,7 @@ func GetTickerFromUser() string {
 	// looking for these, e.g. bond..
 	words := []string{"OVERVIEW", "NONFARMPAYROLL", "NONFARM", "PAYROLL", "EMPLOYMENT", "TGLAT", "GAINERS", "LOSERS", "TOPGAINERSLOSERS",
 		"OVERVIEW", "RETAIL", "INFLATION", "CPI", "FEDFUNDSRATE", "FUNDS", "EFFECTIVEFEDERALFUNDSRATE", "EFFR",
-		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT", "RETAILSALES",
+		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT", "STATEMENT", "INCOME_STATEMENT", "RETAILSALES",
 		"BOND", "YIELD", "TREASURY", "TREASURY_YIELD",
 	}
 	for _, word := range words {
@@ -125,7 +125,7 @@ func QueryBuilder(ticker string) (url string) {
 
 	// the actual ticker comes after
 	tickerFirst := strings.Fields(ticker)[0]
-
+	tickerNext := strings.Fields(ticker)[1]
 	var dateRegexIsTrue string
 	if regexp.MustCompile(`\b\d{4}-\d{2}\b`).MatchString(tickerFirst) {
 		dateRegexIsTrue = tickerFirst
@@ -142,23 +142,27 @@ func QueryBuilder(ticker string) (url string) {
 		return
 	// overview OVERVIEW
 	case "OVERVIEW":
-		url = baseUrl + "OVERVIEW" + "&symbol=" + ticker
+		url = baseUrl + "OVERVIEW" + "&symbol=" + tickerNext
 		structType = "APIs.StockOverview"
 		return
 	// income INCOME_STATEMENT  // "EARNINGS", "CASHFLOW", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT"
 	// balance 	BALANCE_SHEET
+	case "INCOME_STATEMENT", "INCOME", "STATEMENT", "INCOMESTATEMENT":
+		url = baseUrl + "INCOME_STATEMENT" + "&symbol=" + tickerNext
+		structType = "APIs.IncomeStatements"
+		return
 	case "BALANCE_SHEET", "BALANCESHEET", "BALANCE":
-		url = baseUrl + "BALANCE_SHEET" + "&symbol=" + ticker
+		url = baseUrl + "BALANCE_SHEET" + "&symbol=" + tickerNext
 		structType = "APIs.BalanceSheets"
 		return
 	// cashflow CASH_FLOW
 	case "CASH_FLOW", "CASHFLOW":
-		url = baseUrl + "CASH_FLOW" + "&symbol=" + ticker
+		url = baseUrl + "CASH_FLOW" + "&symbol=" + tickerNext
 		structType = "APIs.CashFlowStatements"
 		return
 	// earnings	EARNINGS
 	case "EARNINGS":
-		url = baseUrl + "EARNINGS" + "&symbol=" + ticker
+		url = baseUrl + "EARNINGS" + "&symbol=" + tickerNext
 		structType = "APIs.EarningsData"
 		return
 
@@ -266,7 +270,7 @@ func QueryBuilder(ticker string) (url string) {
 		// TREASURY_YIELD  &maturity 3month, 2year,5,year,7year, 10 year, 30year
 	case "BOND", "YIELD", "TREASURY", "TREASURY_YIELD":
 		// second field is maturity
-		maturity := strings.Fields(ticker)[1]
+		maturity := tickerNext
 		switch maturity {
 		case "3", "3m", "3month":
 			maturity = "3month"
@@ -300,8 +304,7 @@ func QueryBuilder(ticker string) (url string) {
 		if date.Before(refDate) {
 			fmt.Println("Error: Date is before 2000-01")
 		}
-		// strongly expect this to fail, it doesn't add the month...
-		url = baseUrl + "TIME_SERIES_INTRADAY" + "&symbol" + ticker + "&outputsize=full"
+		url = baseUrl + "TIME_SERIES_INTRADAY" + "&month" + tickerFirst + "&interval=1min" + "&symbol=" + tickerNext + "&outputsize=full"
 		structType = "APIs.IntradayOHLCVs"
 		return
 
@@ -341,25 +344,38 @@ func ReformatJson(resp io.Reader) string {
 		output, err := json.Marshal(seriesDataMap)
 		check(err)
 		return string(output)
-	case "APIs.BalanceSheets":
-		var seriesDataMap APIs.BalanceSheets
-		err := decoder.Decode(&seriesDataMap.QuarterlyReports)
+	case "APIs.IncomeStatements":
+		//json: invalid use of ,string struct tag, trying to unmarshal "None" into float64
+		var seriesDataMap map[string]interface{}
+		// 	var seriesDataMap APIs.IncomeStatements
+
+		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap.QuarterlyReports)
+		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports when fix struct
+		check(err)
+		return string(output)
+	case "APIs.BalanceSheets":
+		var seriesDataMap map[string]interface{}
+		// var seriesDataMap map[string]interface{}
+		err := decoder.Decode(&seriesDataMap)
+		check(err)
+		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports when struct fixed
 		check(err)
 		return string(output)
 	case "APIs.CashFlowStatements":
-		var seriesDataMap APIs.CashFlowStatements
+		var seriesDataMap map[string]interface{}
+		//var seriesDataMap APIs.CashFlowStatements
 		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap.QuarterlyReports)
+		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports
 		check(err)
 		return string(output)
 	case "APIs.EarningsData":
-		var seriesDataMap APIs.EarningsData
+		var seriesDataMap map[string]interface{}
+		// var seriesDataMap APIs.EarningsData
 		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap.QuarterlyEarnings)
+		output, err := json.Marshal(seriesDataMap) // .QuarterlyEarnings
 		check(err)
 		return string(output)
 	// Commodities and Economic Indicators - use same structure
@@ -373,10 +389,11 @@ func ReformatJson(resp io.Reader) string {
 		return string(output)
 
 	case "APIs.IntradayOHLCVs":
+		fmt.Println("0")
 		var seriesDataMap APIs.IntradayOHLCVs
 		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap.TimeSeries5min)
+		output, err := json.Marshal(seriesDataMap.TimeSeries1min)
 		check(err)
 		return string(output)
 	case "APIs.DailyOHLCVs":

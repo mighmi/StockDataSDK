@@ -36,7 +36,7 @@ type DailyOHLCV struct {
 // TIME_SERIES_INTRADAY
 type IntradayOHLCVs struct {
 	MetaData       IntradayOHLCVMetaData    `json:"Meta Data"`
-	TimeSeries5min map[string]IntradayOHLCV `json:"Time Series (5min)"`
+	TimeSeries1min map[string]IntradayOHLCV `json:"Time Series (1min)"`
 }
 
 type IntradayOHLCVMetaData struct {
@@ -111,6 +111,8 @@ type StockOverview struct {
 }
 
 // income statement
+// json: invalid use of ,string struct tag, trying to unmarshal "None" into float64
+// unsure why, so unmarshaling into map any
 
 type IncomeStatements struct {
 	Symbol           string            `json:"symbol"`
@@ -147,10 +149,52 @@ type IncomeStatement struct {
 	NetIncome                         float64 `json:"netIncome,string"`
 }
 
-// var data StockData
-// if err := json.Unmarshal([]byte(jsonString), &data); err != nil {
-// 	fmt.Println("Error unmarshaling JSON:", err)
-// 	return
+// https://github.com/veqqq/StockDataSDK/issues/6
+// implement UnmarshalJSON to avoid this error:
+// json: invalid use of ,string struct tag, trying to unmarshal "None" into float64
+// should add every "None" possible field to aux and give it a similar if statement below
+//
+// turn nullable fields into *float64, for clf that's at least InvestmentIncomeNet and ResearchAndDeveloplemtnt
+//
+// func (f *IncomeStatement) UnmarshalJSON(data []byte) error {
+// 	type Alias IncomeStatement // Alias avoids recursive call to UnmarshalJSON
+// 	aux := &struct {
+// 		*Alias
+// 		ResearchAndDevelopment json.RawMessage `json:"researchAndDevelopment"`
+// 		InvestmentIncomeNet    json.RawMessage `json:"investmentIncomeNet"`
+// 	}{Alias: (*Alias)(f)}
+
+// 	if err := json.Unmarshal(data, &aux); err != nil {
+// 		return err
+// 	}
+
+// 	if aux.ResearchAndDevelopment != nil {
+// 		var value float64
+// 		if err := json.Unmarshal(aux.ResearchAndDevelopment, &value); err != nil {
+// 			if string(aux.ResearchAndDevelopment) == `"None"` {
+// 				f.ResearchAndDevelopment = nil
+// 			} else {
+// 				return err
+// 			}
+// 		} else {
+// 			f.ResearchAndDevelopment = &value
+// 		}
+// 	}
+
+// 	if aux.InvestmentIncomeNet != nil {
+// 		var value float64
+// 		if err := json.Unmarshal(aux.InvestmentIncomeNet, &value); err != nil {
+// 			if string(aux.InvestmentIncomeNet) == `"None"` {
+// 				f.InvestmentIncomeNet = nil
+// 			} else {
+// 				return err
+// 			}
+// 		} else {
+// 			f.InvestmentIncomeNet = &value
+// 		}
+// 	}
+
+// 	return nil
 // }
 
 // balance sheet
