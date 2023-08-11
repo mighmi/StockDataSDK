@@ -401,7 +401,7 @@ type TGLAT struct {
 	Ticker           string  `json:"ticker"`
 	Price            float64 `json:"price,string"`
 	ChangeAmount     float64 `json:"change_amount,string"`
-	ChangePercentage float64 `json:"change_percentage,string"`
+	ChangePercentage string  `json:"change_percentage"` // has %, later implement json unmarshaler for this
 	Volume           int64   `json:"volume,string"`
 }
 

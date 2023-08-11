@@ -146,10 +146,10 @@ func QueryBuilder(ticker string) (url string) {
 		url = baseUrl + "FX_DAILY" + "&outputsize=full" + "&from_symbol=" + from + "&to_symbol=" + to
 		structType = "APIs.ForexPrices"
 		return
-	// TOP_GAINTERS_LOSERS and most active...
+	// TOP_GAINERS_LOSERS and most active...
 	// fix pls
 	case "TGLAT", "TGLATS", "GAINERS", "LOSERS", "TOPGAINERSLOSERS":
-		url = baseUrl + "TOP_GAINTERS_LOSERS"
+		url = baseUrl + "TOP_GAINERS_LOSERS"
 		structType = "APIs.TGLATs"
 		return
 	// overview OVERVIEW
