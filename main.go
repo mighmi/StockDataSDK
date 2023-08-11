@@ -46,6 +46,7 @@ func GetTickerFromUser() string {
 	words := []string{"OVERVIEW", "NONFARMPAYROLL", "NONFARM", "PAYROLL", "EMPLOYMENT", "TGLAT", "GAINERS", "LOSERS", "TOPGAINERSLOSERS",
 		"OVERVIEW", "RETAIL", "INFLATION", "CPI", "FEDFUNDSRATE", "FUNDS", "EFFECTIVEFEDERALFUNDSRATE", "EFFR",
 		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT", "RETAILSALES",
+		"BOND", "YIELD", "TREASURY", "TREASURY_YIELD",
 	}
 	for _, word := range words {
 		if strings.Contains(userInput, word) {
@@ -84,11 +85,29 @@ func GetTickerFromUser() string {
 
 //	}
 
-// lazy
+// lazy implementation from godotenv to reduce dependencies
 func buildBaseURL() string {
-	data, err := os.ReadFile(".env")
+	f, err := (os.Open(".env"))
 	check(err)
-	apiKey := string(data)
+	defer f.Close()
+
+	var envMap map[string]string
+	err = json.NewDecoder(f).Decode(&envMap)
+	check(err)
+
+	currentEnv := map[string]bool{}
+	rawEnv := os.Environ()
+	for _, rawEnvLine := range rawEnv {
+		key := strings.Split(rawEnvLine, "=")[0]
+		currentEnv[key] = true
+	}
+	for key, value := range envMap {
+		if !currentEnv[key] {
+			_ = os.Setenv(key, value)
+		}
+	}
+
+	apiKey := os.Getenv("APIKEY")
 	// apiKey, ok := os.LookupEnv("APIKEY")
 	// if !ok {
 	// 	log.Fatalf("Add API Key to .env")
@@ -244,9 +263,28 @@ func QueryBuilder(ticker string) (url string) {
 		structType = "APIs.CommodityPrices"
 		return
 
-		// treasury yield - in percent, monthly or daily?
-		//          // maturities: 3month, 2year, 5year, 7year, 10year
-		// TREASURY_YIELD &interval=daily &maturity 3month, 2year,5,year,7year, 10 year, 30year
+		// TREASURY_YIELD  &maturity 3month, 2year,5,year,7year, 10 year, 30year
+	case "BOND", "YIELD", "TREASURY", "TREASURY_YIELD":
+		// second field is maturity
+		maturity := strings.Fields(ticker)[1]
+		switch maturity {
+		case "3", "3m", "3month":
+			maturity = "3month"
+		case "2", "2y", "2yr", "2year":
+			maturity = "2year"
+		case "5", "5y", "5yr", "5year":
+			maturity = "5year"
+		case "7", "7y", "7yr", "7year":
+			maturity = "7year"
+		case "10", "10y", "10yr", "10year":
+			maturity = "10year"
+		case "30", "30y", "30yr", "30year":
+			maturity = "30year"
+		}
+
+		url = baseUrl + "TREASURY_YIELD" + "&interval=daily" + "&maturity=" + maturity
+		structType = "APIs.CommodityPrices"
+		return
 
 	// time series intraday   	 ?interval=1min  extended true/false?
 	// e.g. month=2009-01, since 2000-01
@@ -262,7 +300,7 @@ func QueryBuilder(ticker string) (url string) {
 		if date.Before(refDate) {
 			fmt.Println("Error: Date is before 2000-01")
 		}
-
+		// strongly expect this to fail, it doesn't add the month...
 		url = baseUrl + "TIME_SERIES_INTRADAY" + "&symbol" + ticker + "&outputsize=full"
 		structType = "APIs.IntradayOHLCVs"
 		return
@@ -330,7 +368,7 @@ func ReformatJson(resp io.Reader) string {
 		var seriesDataMap APIs.CommodityPrices
 		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap)
+		output, err := json.Marshal(seriesDataMap.Data)
 		check(err)
 		return string(output)
 
@@ -411,11 +449,11 @@ func main() {
 	resp, err := http.Get(url) // later become new func?
 	check(err)
 	defer resp.Body.Close()
-	fmt.Println(url)
-
-	fmt.Println(resp.Body)
+	//	fmt.Println(resp.Body)
 	finalData := ReformatJson(resp.Body)
-	fmt.Println(finalData)
+	//	fmt.Println(finalData) // for dev purposes, remove when everything works
 	WriteToFile(ticker, finalData)
+
+	fmt.Println(url)
 
 }

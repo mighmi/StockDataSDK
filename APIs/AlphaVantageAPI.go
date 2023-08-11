@@ -1,5 +1,10 @@
 package APIs
 
+import (
+	"encoding/json"
+	"strconv"
+)
+
 // AlphaVantage API https://www.alphavantage.co/documentation/
 
 ///////////////////////
@@ -285,8 +290,31 @@ type CommodityPrices struct { // rename
 }
 
 type CommodityPrice struct { // rename
-	Date  string  `json:"date"`
-	Value float64 `json:"value,string"`
+	Date  string  `json:"date,omitempty"`
+	Value float64 `json:"value,string,omitempty"`
+}
+
+// CommodityPrice satisfies Unmarshaler
+func (c *CommodityPrice) UnmarshalJSON(data []byte) error {
+	var aux struct {
+		Date  string `json:"date"`
+		Value string `json:"value"`
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	// If val or date are useless, ignore struct
+	// some dates have "." val, which normal unmarshaler doesn't handle, hence writing this
+	if aux.Value == "null" || aux.Value == "" || aux.Value == "." || aux.Value == "0" || aux.Value == "0.0" || aux.Date == "" || aux.Date == "null" || aux.Date == "." {
+		return nil
+	}
+	value, err := strconv.ParseFloat(aux.Value, 64)
+	if err != nil { // check declared in main.go, inaccessible here
+		return err
+	}
+	c.Date = aux.Date
+	c.Value = value
+	return nil
 }
 
 /////////
