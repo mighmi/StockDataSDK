@@ -46,7 +46,7 @@ func GetTickerFromUser() string {
 	words := []string{"OVERVIEW", "NONFARMPAYROLL", "NONFARM", "PAYROLL", "EMPLOYMENT", "TGLAT", "GAINERS", "LOSERS", "TOPGAINERSLOSERS",
 		"OVERVIEW", "RETAIL", "INFLATION", "CPI", "FEDFUNDSRATE", "FUNDS", "EFFECTIVEFEDERALFUNDSRATE", "EFFR",
 		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT", "STATEMENT", "INCOME_STATEMENT", "RETAILSALES",
-		"BOND", "YIELD", "TREASURY", "TREASURY_YIELD",
+		"BOND", "YIELD", "TREASURY", "TREASURY_YIELD", "EXCHANGE", "CURRENCY", "RATE",
 	}
 	for _, word := range words {
 		if strings.Contains(userInput, word) {
@@ -125,7 +125,6 @@ func QueryBuilder(ticker string) (url string) {
 
 	// the actual ticker comes after
 	tickerFirst := strings.Fields(ticker)[0]
-	tickerNext := strings.Fields(ticker)[1]
 	var dateRegexIsTrue string
 	if regexp.MustCompile(`\b\d{4}-\d{2}\b`).MatchString(tickerFirst) {
 		dateRegexIsTrue = tickerFirst
@@ -135,33 +134,51 @@ func QueryBuilder(ticker string) (url string) {
 
 	// News sentiment - complicated beast - figure out later
 
+	// FX_DAILY
+	// physical_currency_list/ required
+	// - ✅ FX_DAILY - daily (timestamp, open, high, low, close)
+	//     - from_symbol, to_symbol
+	//     - output size - default compact, full 20 years
+
+	case "EXCHANGE", "CURRENCY", "RATE":
+		from := strings.Fields(ticker)[1]
+		to := strings.Fields(ticker)[2]
+		url = baseUrl + "FX_DAILY" + "&outputsize=full" + "&from_symbol=" + from + "&to_symbol=" + to
+		structType = "APIs.ForexPrices"
+		return
 	// TOP_GAINTERS_LOSERS and most active...
+	// fix pls
 	case "TGLAT", "TGLATS", "GAINERS", "LOSERS", "TOPGAINERSLOSERS":
-		url = baseUrl + "APIs.TOP_GAINTERS_LOSERS"
-		structType = "TGLATs"
+		url = baseUrl + "TOP_GAINTERS_LOSERS"
+		structType = "APIs.TGLATs"
 		return
 	// overview OVERVIEW
 	case "OVERVIEW":
+		tickerNext := strings.Fields(ticker)[1]
 		url = baseUrl + "OVERVIEW" + "&symbol=" + tickerNext
 		structType = "APIs.StockOverview"
 		return
 	// income INCOME_STATEMENT  // "EARNINGS", "CASHFLOW", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT"
 	// balance 	BALANCE_SHEET
 	case "INCOME_STATEMENT", "INCOME", "STATEMENT", "INCOMESTATEMENT":
+		tickerNext := strings.Fields(ticker)[1]
 		url = baseUrl + "INCOME_STATEMENT" + "&symbol=" + tickerNext
 		structType = "APIs.IncomeStatements"
 		return
 	case "BALANCE_SHEET", "BALANCESHEET", "BALANCE":
+		tickerNext := strings.Fields(ticker)[1]
 		url = baseUrl + "BALANCE_SHEET" + "&symbol=" + tickerNext
 		structType = "APIs.BalanceSheets"
 		return
 	// cashflow CASH_FLOW
 	case "CASH_FLOW", "CASHFLOW":
+		tickerNext := strings.Fields(ticker)[1]
 		url = baseUrl + "CASH_FLOW" + "&symbol=" + tickerNext
 		structType = "APIs.CashFlowStatements"
 		return
 	// earnings	EARNINGS
 	case "EARNINGS":
+		tickerNext := strings.Fields(ticker)[1]
 		url = baseUrl + "EARNINGS" + "&symbol=" + tickerNext
 		structType = "APIs.EarningsData"
 		return
@@ -270,7 +287,7 @@ func QueryBuilder(ticker string) (url string) {
 		// TREASURY_YIELD  &maturity 3month, 2year,5,year,7year, 10 year, 30year
 	case "BOND", "YIELD", "TREASURY", "TREASURY_YIELD":
 		// second field is maturity
-		maturity := tickerNext
+		maturity := strings.Fields(ticker)[1]
 		switch maturity {
 		case "3", "3m", "3month":
 			maturity = "3month"
@@ -304,6 +321,7 @@ func QueryBuilder(ticker string) (url string) {
 		if date.Before(refDate) {
 			fmt.Println("Error: Date is before 2000-01")
 		}
+		tickerNext := strings.Fields(ticker)[1]
 		url = baseUrl + "TIME_SERIES_INTRADAY" + "&month" + tickerFirst + "&interval=1min" + "&symbol=" + tickerNext + "&outputsize=full"
 		structType = "APIs.IntradayOHLCVs"
 		return
@@ -330,6 +348,13 @@ func ReformatJson(resp io.Reader) string {
 
 	// the switch checks global var structType, then uses it as the marshaling struct type
 	switch structType {
+	case "APIs.ForexPrices":
+		var seriesDataMap APIs.ForexPrices
+		err := decoder.Decode(&seriesDataMap)
+		check(err)
+		output, err := json.Marshal(seriesDataMap) // perhaps change, but 3 maps
+		check(err)
+		return string(output)
 	case "APIs.TGLATs":
 		var seriesDataMap APIs.TGLATs
 		err := decoder.Decode(&seriesDataMap)
@@ -387,7 +412,6 @@ func ReformatJson(resp io.Reader) string {
 		output, err := json.Marshal(seriesDataMap.Data)
 		check(err)
 		return string(output)
-
 	case "APIs.IntradayOHLCVs":
 		fmt.Println("0")
 		var seriesDataMap APIs.IntradayOHLCVs
