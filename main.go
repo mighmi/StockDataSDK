@@ -28,10 +28,7 @@ func GetTickerFromUser() string {
 
 	if len(os.Args) < 2 {
 		fmt.Println("Enter Stock Ticker. N.b. prefereds use a hyphen (PBR-A):")
-		// reader := bufio.NewReader(os.Stdin)
-		// ticker, err := reader.ReadString('\n')
-		// check(err)
-		fmt.Scanln(&userInput) // replaces need for reader!
+		fmt.Scanln(&userInput)
 		userInput = strings.TrimSuffix(userInput, "\n")
 	} else {
 		userInput = strings.Join(os.Args[1:], " ")
@@ -68,23 +65,7 @@ func GetTickerFromUser() string {
 
 }
 
-// build baseUR, fetching the APIkey from env
-// os.Getenv or github.com/joho/godotenv ?
-// viper has a lot of dependencies...
-//
-//	func buildBaseURLViper() string {
-//		viper.SetConfigFile("local.env")
-//		err := viper.ReadInConfig()
-//		check(err)
-//		apiKey, ok := viper.Get("APIKEY").(string)
-//		if !ok {
-//			log.Fatalf("Add API Key to .env")
-//		}
-// apiKey = "?apikey=" + apiKey
-// return "https://www.alphavantage.co//query" + apiKey + "&function="
-
-//	}
-
+// build a base url, fetching the apikey from .env file
 // lazy implementation from godotenv to reduce dependencies
 func buildBaseURL() string {
 	f, err := (os.Open(".env"))
@@ -135,11 +116,6 @@ func QueryBuilder(ticker string) (url string) {
 	// News sentiment - complicated beast - figure out later
 
 	// FX_DAILY
-	// physical_currency_list/ required
-	// - ✅ FX_DAILY - daily (timestamp, open, high, low, close)
-	//     - from_symbol, to_symbol
-	//     - output size - default compact, full 20 years
-
 	case "EXCHANGE", "CURRENCY", "RATE":
 		from := strings.Fields(ticker)[1]
 		to := strings.Fields(ticker)[2]
@@ -329,7 +305,7 @@ func QueryBuilder(ticker string) (url string) {
 	// daily time series, DailyOHLCVs
 	// &outputsize=full gets 20 years of data, remove it when testing defaulting to compact with 100 data points...
 	default:
-		url = baseUrl + "TIME_SERIES_DAILY" + "&symbol=" + ticker // + "&outputsize=full"
+		url = baseUrl + "TIME_SERIES_DAILY" + "&symbol=" + ticker + "&outputsize=full"
 		structType = "APIs.DailyOHLCVs"
 		return
 
