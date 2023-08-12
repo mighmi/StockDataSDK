@@ -2,6 +2,7 @@ package main
 
 import (
 	"StockDataSDK/APIs"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 func check(err error) {
@@ -450,6 +453,30 @@ func WriteToFile(filename, data string) {
 	check(err)
 	defer f.Close()
 	fmt.Fprint(f, data)
+}
+
+// for postgres
+// read these from the .env file...
+// shitty test atm
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = "..."
+	dbname   = "stocks1"
+)
+
+func WriteToPostgres() {
+
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s"+"password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+
+	db, err := sql.Open("postgres", psqlInfo)
+	check(err)
+	defer db.Close()
+
+	sqlStatement := `INSERT INTO dailyohlcv (open, high, low, close, volume, ticker) VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err = db.Exec(sqlStatement, 42, 53, 45, 75, 234, "EWZ") // example, make it unload the struct
+	check(err)
 }
 
 var baseUrl string    // global
