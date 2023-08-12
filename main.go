@@ -2,6 +2,7 @@ package main
 
 import (
 	"StockDataSDK/APIs"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 func check(err error) {
@@ -28,10 +31,7 @@ func GetTickerFromUser() string {
 
 	if len(os.Args) < 2 {
 		fmt.Println("Enter Stock Ticker. N.b. prefereds use a hyphen (PBR-A):")
-		// reader := bufio.NewReader(os.Stdin)
-		// ticker, err := reader.ReadString('\n')
-		// check(err)
-		fmt.Scanln(&userInput) // replaces need for reader!
+		fmt.Scanln(&userInput)
 		userInput = strings.TrimSuffix(userInput, "\n")
 	} else {
 		userInput = strings.Join(os.Args[1:], " ")
@@ -45,8 +45,8 @@ func GetTickerFromUser() string {
 	// looking for these, e.g. bond..
 	words := []string{"OVERVIEW", "NONFARMPAYROLL", "NONFARM", "PAYROLL", "EMPLOYMENT", "TGLAT", "GAINERS", "LOSERS", "TOPGAINERSLOSERS",
 		"OVERVIEW", "RETAIL", "INFLATION", "CPI", "FEDFUNDSRATE", "FUNDS", "EFFECTIVEFEDERALFUNDSRATE", "EFFR",
-		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT", "RETAILSALES",
-		"BOND", "YIELD", "TREASURY", "TREASURY_YIELD",
+		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT", "STATEMENT", "INCOME_STATEMENT", "RETAILSALES",
+		"BOND", "YIELD", "TREASURY", "TREASURY_YIELD", "EXCHANGE", "CURRENCY", "RATE",
 	}
 	for _, word := range words {
 		if strings.Contains(userInput, word) {
@@ -68,23 +68,7 @@ func GetTickerFromUser() string {
 
 }
 
-// build baseUR, fetching the APIkey from env
-// os.Getenv or github.com/joho/godotenv ?
-// viper has a lot of dependencies...
-//
-//	func buildBaseURLViper() string {
-//		viper.SetConfigFile("local.env")
-//		err := viper.ReadInConfig()
-//		check(err)
-//		apiKey, ok := viper.Get("APIKEY").(string)
-//		if !ok {
-//			log.Fatalf("Add API Key to .env")
-//		}
-// apiKey = "?apikey=" + apiKey
-// return "https://www.alphavantage.co//query" + apiKey + "&function="
-
-//	}
-
+// build a base url, fetching the apikey from .env file
 // lazy implementation from godotenv to reduce dependencies
 func buildBaseURL() string {
 	f, err := (os.Open(".env"))
@@ -125,7 +109,6 @@ func QueryBuilder(ticker string) (url string) {
 
 	// the actual ticker comes after
 	tickerFirst := strings.Fields(ticker)[0]
-
 	var dateRegexIsTrue string
 	if regexp.MustCompile(`\b\d{4}-\d{2}\b`).MatchString(tickerFirst) {
 		dateRegexIsTrue = tickerFirst
@@ -135,30 +118,47 @@ func QueryBuilder(ticker string) (url string) {
 
 	// News sentiment - complicated beast - figure out later
 
-	// TOP_GAINTERS_LOSERS and most active...
+	// FX_DAILY
+	case "EXCHANGE", "CURRENCY", "RATE":
+		from := strings.Fields(ticker)[1]
+		to := strings.Fields(ticker)[2]
+		url = baseUrl + "FX_DAILY" + "&outputsize=full" + "&from_symbol=" + from + "&to_symbol=" + to
+		structType = "APIs.ForexPrices"
+		return
+	// TOP_GAINERS_LOSERS and most active...
+	// fix pls
 	case "TGLAT", "TGLATS", "GAINERS", "LOSERS", "TOPGAINERSLOSERS":
-		url = baseUrl + "APIs.TOP_GAINTERS_LOSERS"
-		structType = "TGLATs"
+		url = baseUrl + "TOP_GAINERS_LOSERS"
+		structType = "APIs.TGLATs"
 		return
 	// overview OVERVIEW
 	case "OVERVIEW":
-		url = baseUrl + "OVERVIEW" + "&symbol=" + ticker
+		tickerNext := strings.Fields(ticker)[1]
+		url = baseUrl + "OVERVIEW" + "&symbol=" + tickerNext
 		structType = "APIs.StockOverview"
 		return
 	// income INCOME_STATEMENT  // "EARNINGS", "CASHFLOW", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT"
 	// balance 	BALANCE_SHEET
+	case "INCOME_STATEMENT", "INCOME", "STATEMENT", "INCOMESTATEMENT":
+		tickerNext := strings.Fields(ticker)[1]
+		url = baseUrl + "INCOME_STATEMENT" + "&symbol=" + tickerNext
+		structType = "APIs.IncomeStatements"
+		return
 	case "BALANCE_SHEET", "BALANCESHEET", "BALANCE":
-		url = baseUrl + "BALANCE_SHEET" + "&symbol=" + ticker
+		tickerNext := strings.Fields(ticker)[1]
+		url = baseUrl + "BALANCE_SHEET" + "&symbol=" + tickerNext
 		structType = "APIs.BalanceSheets"
 		return
 	// cashflow CASH_FLOW
 	case "CASH_FLOW", "CASHFLOW":
-		url = baseUrl + "CASH_FLOW" + "&symbol=" + ticker
+		tickerNext := strings.Fields(ticker)[1]
+		url = baseUrl + "CASH_FLOW" + "&symbol=" + tickerNext
 		structType = "APIs.CashFlowStatements"
 		return
 	// earnings	EARNINGS
 	case "EARNINGS":
-		url = baseUrl + "EARNINGS" + "&symbol=" + ticker
+		tickerNext := strings.Fields(ticker)[1]
+		url = baseUrl + "EARNINGS" + "&symbol=" + tickerNext
 		structType = "APIs.EarningsData"
 		return
 
@@ -300,15 +300,15 @@ func QueryBuilder(ticker string) (url string) {
 		if date.Before(refDate) {
 			fmt.Println("Error: Date is before 2000-01")
 		}
-		// strongly expect this to fail, it doesn't add the month...
-		url = baseUrl + "TIME_SERIES_INTRADAY" + "&symbol" + ticker + "&outputsize=full"
+		tickerNext := strings.Fields(ticker)[1]
+		url = baseUrl + "TIME_SERIES_INTRADAY" + "&month" + tickerFirst + "&interval=1min" + "&symbol=" + tickerNext + "&outputsize=full"
 		structType = "APIs.IntradayOHLCVs"
 		return
 
 	// daily time series, DailyOHLCVs
 	// &outputsize=full gets 20 years of data, remove it when testing defaulting to compact with 100 data points...
 	default:
-		url = baseUrl + "TIME_SERIES_DAILY" + "&symbol=" + ticker // + "&outputsize=full"
+		url = baseUrl + "TIME_SERIES_DAILY" + "&symbol=" + ticker + "&outputsize=full"
 		structType = "APIs.DailyOHLCVs"
 		return
 
@@ -327,6 +327,13 @@ func ReformatJson(resp io.Reader) string {
 
 	// the switch checks global var structType, then uses it as the marshaling struct type
 	switch structType {
+	case "APIs.ForexPrices":
+		var seriesDataMap APIs.ForexPrices
+		err := decoder.Decode(&seriesDataMap)
+		check(err)
+		output, err := json.Marshal(seriesDataMap) // perhaps change, but 3 maps
+		check(err)
+		return string(output)
 	case "APIs.TGLATs":
 		var seriesDataMap APIs.TGLATs
 		err := decoder.Decode(&seriesDataMap)
@@ -341,25 +348,38 @@ func ReformatJson(resp io.Reader) string {
 		output, err := json.Marshal(seriesDataMap)
 		check(err)
 		return string(output)
-	case "APIs.BalanceSheets":
-		var seriesDataMap APIs.BalanceSheets
-		err := decoder.Decode(&seriesDataMap.QuarterlyReports)
+	case "APIs.IncomeStatements":
+		//json: invalid use of ,string struct tag, trying to unmarshal "None" into float64
+		var seriesDataMap map[string]interface{}
+		// 	var seriesDataMap APIs.IncomeStatements
+
+		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap.QuarterlyReports)
+		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports when fix struct
+		check(err)
+		return string(output)
+	case "APIs.BalanceSheets":
+		var seriesDataMap map[string]interface{}
+		// var seriesDataMap map[string]interface{}
+		err := decoder.Decode(&seriesDataMap)
+		check(err)
+		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports when struct fixed
 		check(err)
 		return string(output)
 	case "APIs.CashFlowStatements":
-		var seriesDataMap APIs.CashFlowStatements
+		var seriesDataMap map[string]interface{}
+		//var seriesDataMap APIs.CashFlowStatements
 		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap.QuarterlyReports)
+		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports
 		check(err)
 		return string(output)
 	case "APIs.EarningsData":
-		var seriesDataMap APIs.EarningsData
+		var seriesDataMap map[string]interface{}
+		// var seriesDataMap APIs.EarningsData
 		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap.QuarterlyEarnings)
+		output, err := json.Marshal(seriesDataMap) // .QuarterlyEarnings
 		check(err)
 		return string(output)
 	// Commodities and Economic Indicators - use same structure
@@ -371,12 +391,12 @@ func ReformatJson(resp io.Reader) string {
 		output, err := json.Marshal(seriesDataMap.Data)
 		check(err)
 		return string(output)
-
 	case "APIs.IntradayOHLCVs":
+		fmt.Println("0")
 		var seriesDataMap APIs.IntradayOHLCVs
 		err := decoder.Decode(&seriesDataMap)
 		check(err)
-		output, err := json.Marshal(seriesDataMap.TimeSeries5min)
+		output, err := json.Marshal(seriesDataMap.TimeSeries1min)
 		check(err)
 		return string(output)
 	case "APIs.DailyOHLCVs":
@@ -433,6 +453,30 @@ func WriteToFile(filename, data string) {
 	check(err)
 	defer f.Close()
 	fmt.Fprint(f, data)
+}
+
+// for postgres
+// read these from the .env file...
+// shitty test atm
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = "..."
+	dbname   = "stocks1"
+)
+
+func WriteToPostgres() {
+
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s"+"password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+
+	db, err := sql.Open("postgres", psqlInfo)
+	check(err)
+	defer db.Close()
+
+	sqlStatement := `INSERT INTO dailyohlcv (open, high, low, close, volume, ticker) VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err = db.Exec(sqlStatement, 42, 53, 45, 75, 234, "EWZ") // example, make it unload the struct
+	check(err)
 }
 
 var baseUrl string    // global

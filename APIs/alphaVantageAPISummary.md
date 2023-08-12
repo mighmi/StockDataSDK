@@ -90,19 +90,9 @@ https://www.alphavantage.co/documentation/
 
 ---------
 
-### What to do with Fundemental Data?
+### Fundemental Data
 
-- cf. Obsidian "What to do with Fundemental Data?"
-
-- 4 main documents
-    - balance sheet
-    - income statement
-    - cashflow statement
-    - statement of owner's equity
-
-
-
-- I have the following data: 
+- Provides:
 - overview
     - SYMBOL
     - Sector
