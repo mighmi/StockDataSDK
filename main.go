@@ -2,6 +2,7 @@ package main
 
 import (
 	"StockDataSDK/APIs"
+	"StockDataSDK/e"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -14,13 +15,6 @@ import (
 
 	_ "github.com/lib/pq"
 )
-
-func check(err error) {
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(-1)
-	}
-}
 
 // accepts ewz overview, overview ewz etx.
 // if not given with script invocation, will ask
@@ -72,12 +66,12 @@ func GetTickerFromUser() string {
 // lazy implementation from godotenv to reduce dependencies
 func buildBaseURL() string {
 	f, err := (os.Open(".env"))
-	check(err)
+	e.Check(err)
 	defer f.Close()
 
 	var envMap map[string]string
 	err = json.NewDecoder(f).Decode(&envMap)
-	check(err)
+	e.Check(err)
 
 	currentEnv := map[string]bool{}
 	rawEnv := os.Environ()
@@ -330,23 +324,23 @@ func ReformatJson(resp io.Reader) string {
 	case "APIs.ForexPrices":
 		var seriesDataMap APIs.ForexPrices
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap) // perhaps change, but 3 maps
-		check(err)
+		e.Check(err)
 		return string(output)
 	case "APIs.TGLATs":
 		var seriesDataMap APIs.TGLATs
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap) // perhaps change, but 3 maps
-		check(err)
+		e.Check(err)
 		return string(output)
 	case "APIs.StockOverview":
 		var seriesDataMap APIs.StockOverview
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap)
-		check(err)
+		e.Check(err)
 		return string(output)
 	case "APIs.IncomeStatements":
 		//json: invalid use of ,string struct tag, trying to unmarshal "None" into float64
@@ -354,60 +348,60 @@ func ReformatJson(resp io.Reader) string {
 		// 	var seriesDataMap APIs.IncomeStatements
 
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports when fix struct
-		check(err)
+		e.Check(err)
 		return string(output)
 	case "APIs.BalanceSheets":
 		var seriesDataMap map[string]interface{}
 		// var seriesDataMap map[string]interface{}
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports when struct fixed
-		check(err)
+		e.Check(err)
 		return string(output)
 	case "APIs.CashFlowStatements":
 		var seriesDataMap map[string]interface{}
 		//var seriesDataMap APIs.CashFlowStatements
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports
-		check(err)
+		e.Check(err)
 		return string(output)
 	case "APIs.EarningsData":
 		var seriesDataMap map[string]interface{}
 		// var seriesDataMap APIs.EarningsData
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap) // .QuarterlyEarnings
-		check(err)
+		e.Check(err)
 		return string(output)
 	// Commodities and Economic Indicators - use same structure
 	// WTI, BRENT, nat gas, COPPER, ALUMINUM, WHEAT, CORN, COTTON, SUGAR, COFFEE
 	case "APIs.CommodityPrices":
 		var seriesDataMap APIs.CommodityPrices
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap.Data)
-		check(err)
+		e.Check(err)
 		return string(output)
 	case "APIs.IntradayOHLCVs":
 		fmt.Println("0")
 		var seriesDataMap APIs.IntradayOHLCVs
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		output, err := json.Marshal(seriesDataMap.TimeSeries1min)
-		check(err)
+		e.Check(err)
 		return string(output)
 	case "APIs.DailyOHLCVs":
 		var seriesDataMap APIs.DailyOHLCVs
 		err := decoder.Decode(&seriesDataMap)
-		check(err)
+		e.Check(err)
 		// what if I don't remarshal?
 		// fmt.Println(seriesDataMap)
 		// return fmt.Sprint(seriesDataMap.TimeSeries)
 		output, err := json.Marshal(seriesDataMap.TimeSeries)
-		check(err)
+		e.Check(err)
 		return string(output)
 	default: // why do i need this? wont trigger, hm
 		panic("confident I don't need this")
@@ -426,11 +420,11 @@ func ReformatJson(resp io.Reader) string {
 // 	// but there will be scope issues, so predeclare them globally
 // 	// or more elegantly, use interfaces...
 // 	err := json.NewDecoder(body).Decode(&seriesDataMap)
-// 	check(err)
+// 	e.Check(err)
 
 // 	// isolate just the time data
 // 	jsondata, err := json.Marshal(seriesdatamap.TimeSeries) // TimeSeries must be modular too...
-// 	check(err)
+// 	e.Check(err)
 // 	return string(jsondata) // return a pointer? these are big items...
 // }
 
@@ -450,12 +444,12 @@ func WriteToFile(filename, data string) {
 
 	filename = strings.ReplaceAll(filename, " ", "_") // remove spaces from file name
 	f, err := os.OpenFile("data/"+filename+".txt", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0755)
-	check(err)
+	e.Check(err)
 	defer f.Close()
 	fmt.Fprint(f, data)
 }
 
-// for postgres
+// postgres analog to writetofile
 // read these from the .env file...
 // shitty test atm
 const (
@@ -471,12 +465,12 @@ func WriteToPostgres() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s"+"password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 
 	db, err := sql.Open("postgres", psqlInfo)
-	check(err)
+	e.Check(err)
 	defer db.Close()
 
 	sqlStatement := `INSERT INTO dailyohlcv (open, high, low, close, volume, ticker) VALUES ($1, $2, $3, $4, $5, $6)`
 	_, err = db.Exec(sqlStatement, 42, 53, 45, 75, 234, "EWZ") // example, make it unload the struct
-	check(err)
+	e.Check(err)
 }
 
 var baseUrl string    // global
@@ -491,7 +485,7 @@ func main() {
 	url := QueryBuilder(ticker)
 
 	resp, err := http.Get(url) // later become new func?
-	check(err)
+	e.Check(err)
 	defer resp.Body.Close()
 	//	fmt.Println(resp.Body)
 	finalData := ReformatJson(resp.Body)

@@ -1,6 +1,7 @@
 package APIs
 
 import (
+	"StockDataSDK/e"
 	"encoding/json"
 	"strconv"
 )
@@ -353,9 +354,7 @@ func (c *CommodityPrice) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	value, err := strconv.ParseFloat(aux.Value, 64)
-	if err != nil { // check declared in main.go, inaccessible here
-		return err
-	}
+	e.Check(err)
 	c.Date = aux.Date
 	c.Value = value
 	return nil
