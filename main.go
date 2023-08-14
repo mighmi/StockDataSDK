@@ -325,7 +325,7 @@ func ReformatJson(resp io.Reader) string {
 		var seriesDataMap APIs.ForexPrices
 		err := decoder.Decode(&seriesDataMap)
 		e.Check(err)
-		output, err := json.Marshal(seriesDataMap) // perhaps change, but 3 maps
+		output, err := json.Marshal(seriesDataMap)
 		e.Check(err)
 		return string(output)
 	case "APIs.TGLATs":
@@ -343,37 +343,31 @@ func ReformatJson(resp io.Reader) string {
 		e.Check(err)
 		return string(output)
 	case "APIs.IncomeStatements":
-		//json: invalid use of ,string struct tag, trying to unmarshal "None" into float64
-		var seriesDataMap map[string]interface{}
-		// 	var seriesDataMap APIs.IncomeStatements
-
+		var seriesDataMap APIs.IncomeStatements
 		err := decoder.Decode(&seriesDataMap)
 		e.Check(err)
-		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports when fix struct
+		output, err := json.Marshal(seriesDataMap.QuarterlyReports)
 		e.Check(err)
 		return string(output)
 	case "APIs.BalanceSheets":
-		var seriesDataMap map[string]interface{}
-		// var seriesDataMap map[string]interface{}
+		var seriesDataMap APIs.BalanceSheets
 		err := decoder.Decode(&seriesDataMap)
 		e.Check(err)
-		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports when struct fixed
+		output, err := json.Marshal(seriesDataMap.QuarterlyReports)
 		e.Check(err)
 		return string(output)
 	case "APIs.CashFlowStatements":
-		var seriesDataMap map[string]interface{}
-		//var seriesDataMap APIs.CashFlowStatements
+		var seriesDataMap APIs.CashFlowStatements
 		err := decoder.Decode(&seriesDataMap)
 		e.Check(err)
-		output, err := json.Marshal(seriesDataMap) // .QuarterlyReports
+		output, err := json.Marshal(seriesDataMap.QuarterlyReports)
 		e.Check(err)
 		return string(output)
 	case "APIs.EarningsData":
-		var seriesDataMap map[string]interface{}
-		// var seriesDataMap APIs.EarningsData
+		var seriesDataMap APIs.EarningsData
 		err := decoder.Decode(&seriesDataMap)
 		e.Check(err)
-		output, err := json.Marshal(seriesDataMap) // .QuarterlyEarnings
+		output, err := json.Marshal(seriesDataMap.QuarterlyEarnings)
 		e.Check(err)
 		return string(output)
 	// Commodities and Economic Indicators - use same structure
