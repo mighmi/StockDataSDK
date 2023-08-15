@@ -26,7 +26,7 @@ func GetTickerFromUser() string {
 	if len(os.Args) < 2 {
 		fmt.Println("Enter Stock Ticker. N.b. prefereds use a hyphen (PBR-A):")
 		fmt.Scanln(&userInput)
-		userInput = strings.TrimSuffix(userInput, "\n")
+		userInput = strings.TrimSuffix(userInput, "\n") // terminal adds newline...
 	} else {
 		userInput = strings.Join(os.Args[1:], " ")
 	}
@@ -36,10 +36,12 @@ func GetTickerFromUser() string {
 	if strings.Contains(userInput, ".") {
 		userInput = strings.ReplaceAll(userInput, ".", "-")
 	}
+
 	// looking for these, e.g. bond..
-	words := []string{"OVERVIEW", "NONFARMPAYROLL", "NONFARM", "PAYROLL", "EMPLOYMENT", "TGLAT", "GAINERS", "LOSERS", "TOPGAINERSLOSERS",
+	words := []string{"NONFARMPAYROLL", "NONFARM", "PAYROLL", "EMPLOYMENT", "TGLAT", "GAINERS", "LOSERS", "TOPGAINERSLOSERS",
 		"OVERVIEW", "RETAIL", "INFLATION", "CPI", "FEDFUNDSRATE", "FUNDS", "EFFECTIVEFEDERALFUNDSRATE", "EFFR",
-		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET", "INCOME", "INCOMESTATEMENT", "STATEMENT", "INCOME_STATEMENT", "RETAILSALES",
+		"GDPPC", "GDPPERCAP", "GDP", "EARNINGS", "CASHFLOW", "BALANCE_SHEET", "BALANCE", "BALANCESHEET",
+		"INCOME", "INCOMESTATEMENT", "STATEMENT", "INCOME_STATEMENT", "RETAILSALES",
 		"BOND", "YIELD", "TREASURY", "TREASURY_YIELD", "EXCHANGE", "CURRENCY", "RATE",
 	}
 	for _, word := range words {
@@ -58,6 +60,8 @@ func GetTickerFromUser() string {
 		}
 	}
 
+	userInput = strings.ReplaceAll(userInput, "  ", " ")
+	userInput = strings.TrimSuffix(userInput, " ")
 	return userInput
 
 }
@@ -325,7 +329,7 @@ func ReformatJson(resp io.Reader) string {
 		var seriesDataMap APIs.ForexPrices
 		err := decoder.Decode(&seriesDataMap)
 		e.Check(err)
-		output, err := json.Marshal(seriesDataMap)
+		output, err := json.Marshal(seriesDataMap.TimeSeriesFX)
 		e.Check(err)
 		return string(output)
 	case "APIs.TGLATs":
@@ -380,7 +384,6 @@ func ReformatJson(resp io.Reader) string {
 		e.Check(err)
 		return string(output)
 	case "APIs.IntradayOHLCVs":
-		fmt.Println("0")
 		var seriesDataMap APIs.IntradayOHLCVs
 		err := decoder.Decode(&seriesDataMap)
 		e.Check(err)
@@ -391,9 +394,7 @@ func ReformatJson(resp io.Reader) string {
 		var seriesDataMap APIs.DailyOHLCVs
 		err := decoder.Decode(&seriesDataMap)
 		e.Check(err)
-		// what if I don't remarshal?
-		// fmt.Println(seriesDataMap)
-		// return fmt.Sprint(seriesDataMap.TimeSeries)
+
 		output, err := json.Marshal(seriesDataMap.TimeSeries)
 		e.Check(err)
 		return string(output)
@@ -481,11 +482,8 @@ func main() {
 	resp, err := http.Get(url) // later become new func?
 	e.Check(err)
 	defer resp.Body.Close()
-	//	fmt.Println(resp.Body)
 	finalData := ReformatJson(resp.Body)
-	//	fmt.Println(finalData) // for dev purposes, remove when everything works
 	WriteToFile(ticker, finalData)
 
-	fmt.Println(url)
-
+	fmt.Println(url) // just nice to have
 }
