@@ -432,7 +432,6 @@ func WriteToFile(filename, data string) {
 	for _, word := range words {
 		if regexp.MustCompile(`\b\d{4}-\d{2}\b`).MatchString(word) { // date in 2003-01 format
 			filename = strings.ReplaceAll(filename, word, "")
-			filename = strings.ReplaceAll(filename, "  ", " ")
 			filename = filename[1:] + " " + word // [1:] to remove a space, or: word = word + " "
 		}
 	}
