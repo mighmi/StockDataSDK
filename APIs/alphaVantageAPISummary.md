@@ -78,7 +78,7 @@ https://www.alphavantage.co/documentation/
     - IPO_CALENDAR - list of all IPOs in next 3 months
 
 
-    - ✅ NEWS_SENTIMENT - will output article summaries, stock sentiment etc.!
+    - ❌ NEWS_SENTIMENT - will output article summaries, stock sentiment etc.!
         - tickers - `tickers=COIN,CRYPTO:BTC,FOREX:USD` will filter for articles that simultaneously mention them
         - topics - blockchain, earnings, ipo, mergers_and_acquisitions, financial_markets, economy_fiscal, economy_monetary, economy_marco, energy_transportation, finance, life_sciences, manufacturing, real_estate, retail_wholesale, technology. `topics=technology,ipo` will filter for articles that simultaneously cover technology and IPO
         - time_from, time_to - YYYYMMDDTHHMM e.g. time_from=20220410T0130

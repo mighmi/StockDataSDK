@@ -437,7 +437,7 @@ func WriteToFile(filename, data string) {
 	}
 
 	filename = strings.ReplaceAll(filename, " ", "_") // remove spaces from file name
-	f, err := os.OpenFile("data/"+filename+".txt", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0755)
+	f, err := os.OpenFile("data/"+filename+".json", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0755)
 	e.Check(err)
 	defer f.Close()
 	fmt.Fprint(f, data)

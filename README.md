@@ -3,22 +3,50 @@
 - in early alpha
 - will eventually collect and normalize data from different sources
 - Currently only covers Alpha Vantage
+- one of 3 sister projects
 
-#### Alpha Vantage
+
+### Goal
+- persist financial data to DB from different vendors (for vendor agnostic)
+    - orchestrate calls to update data vis a vis vendor limits (different tiers)
+- not for analytics, this is just for data collecting/cleaning
+- not for free key abuse
+- not for scraping yahoo finance etc.
+- not for live data/updates, just end of day or weekly constructions for backtesting
 
 Need:
-- save all ticker data in single file, instead of split by dates etc.?
+- postgres
 - testing
+- decouple from alphavantage api, refactor with interfaces, which APIs satisfy
+    - clarify API surface (similar to usage), add it here
 
 Possible:
-- output csv?
-- output into posgres?
-- make interfaces for structs, to enable marshalling?
-  - or better?
-- reformat functions to accept interfaces, which each API can satisfy
+- output csv or json
+- change fileout to single file or e.g. /ticker/daily.txt
+- detect discongruities between sources
+- reconsider use of floats? (imprecise, money etc. but most likely irrelevant here)
 
-Not:
-- for doing further analytics, this is just for data cleaning/accessing
+### implementation
+- in Go
+- use vendor APIs to collect data (not scraping sites)
+- deployment via [MarketModel](https://github.com/veqqq/MarketModel)
+    - containerized
+    - persist data elsewhere
+
+### alternatives
+- existing go alpha vantage api - found wanting, basically just curl, little implemented
+- julia api
+- various bash scripts
+- python stuff?
+    - Easier to build scratch container agents with go than build whole linux instances to run python, julia or bash scripts
+
+### system context
+- StockDataSDK - data fetching and cleaning
+- price to val comparer
+- [CompanyModels](https://github.com/veqqq/CompanyModels), using financial statements
+- [MarketModel](https://github.com/veqqq/MarketModel) - unified project gluing these together with workflow, build scripts etc. (builds DB to persist data)
+
+### API
 
 -----------
 
@@ -72,12 +100,15 @@ Not:
 
     ---------
 
+### API Targets
 
-### What to do with Fundemental Data?
+- Alpha Vantage
+- iexcloud
+- financial modelling prep
+- boursorama
+- Tehran market testmc.com
+- SEC's EDGAR for corporate filings
+- stock shark - seems tedious for many things e.g. getCompanyFinancials
 
-- cf. alphaVantageAPISummary.md
+cf. https://rapidapi.com/category/Finance
 
-- 3/4 main documents
-    - balance sheet
-    - income statement
-    - cashflow statement

@@ -16,11 +16,11 @@ func TestGetTickerFromUser(t *testing.T) {
 		{"GOOG", "GOOG"},
 		{"bDorY", "BDORY"},
 		{"brent", "BRENT"},
-		{"overview clf", "OVERVIEW CLF"}, // wtf is this
-		{"clf overview", "OVERVIEW CLF"}, // sigh
-		{"5 bond", "BOND 5"},             // wtf where is this space coming from
+		{"overview clf", "OVERVIEW CLF"},
+		{"clf overview", "OVERVIEW CLF"},
+		{"5 bond", "BOND 5"},
 		{"5 yield", "YIELD 5"},
-		{"yield 5", "YIELD 5"}, // passes, so the inversion breaks it
+		{"yield 5", "YIELD 5"},
 	}
 
 	for _, tc := range testCases {
